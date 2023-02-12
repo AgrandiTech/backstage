@@ -62,108 +62,95 @@ export async function deleteWithEagerPruningOfChildren(options: {
         FROM ancestors
         JOIN refresh_state_references ON refresh_state_references.target_entity_ref = ancestors.source_entity_ref
       )
-    -- Start out with all of the descendants
+    WITH
+      -- Retain entities who seem to have a root relation somewhere upwards that's not part of our own deletion
+      retained(entity_ref) AS (
+        SELECT subject
+        FROM ancestors
+        WHERE source_key IS NOT NULL
+        AND (source_key != "R1" OR target_entity_ref NOT IN [...refs])
+      )
+    -- Return all descendants minus the retained ones
     SELECT descendants.entity_ref
     FROM descendants
-    -- Exclude those who seem to have a root relation somewhere upwards that's not part of our own deletion
-    WHERE NOT EXISTS (
-      SELECT * FROM ancestors
-      WHERE ancestors.subject = descendants.entity_ref
-      AND ancestors.source_key IS NOT NULL
-      AND (ancestors.source_key != "R1" OR ancestors.target_entity_ref NOT IN [...refs])
-    )
+    LEFT OUTER JOIN retained ON retained.entity_ref = descendants.entity_ref
+    WHERE retained.entity_ref IS NULL
     */
     removedCount += await tx<DbRefreshStateRow>('refresh_state')
-      .whereIn('entity_ref', function orphanedEntityRefs(orphans) {
-        return (
-          orphans
-            // All the nodes that can be reached downwards from our root
-            .withRecursive(
-              'descendants',
-              ['entity_ref'],
-              function descendants(outer) {
-                return outer
-                  .select({ entity_ref: 'target_entity_ref' })
-                  .from('refresh_state_references')
-                  .where('source_key', '=', sourceKey)
-                  .whereIn('target_entity_ref', refs)
-                  .union(function recursive(inner) {
-                    return inner
-                      .select({
-                        entity_ref:
-                          'refresh_state_references.target_entity_ref',
-                      })
-                      .from('descendants')
-                      .join('refresh_state_references', {
-                        'descendants.entity_ref':
-                          'refresh_state_references.source_entity_ref',
-                      });
-                  });
-              },
-            )
-            // All the relations that can be reached upwards from each descendant
-            .withRecursive(
-              'ancestors',
-              [
-                'source_key',
-                'source_entity_ref',
-                'target_entity_ref',
-                'subject',
-              ],
-              function ancestors(outer) {
-                return outer
-                  .select({
-                    source_key: 'refresh_state_references.source_key',
-                    source_entity_ref:
-                      'refresh_state_references.source_entity_ref',
-                    target_entity_ref:
-                      'refresh_state_references.target_entity_ref',
-                    subject: 'descendants.entity_ref',
-                  })
+      .whereIn('entity_ref', orphans =>
+        orphans
+          // All the nodes that can be reached downwards from our root
+          .withRecursive('descendants', ['entity_ref'], initial =>
+            initial
+              .select('target_entity_ref')
+              .from('refresh_state_references')
+              .where('source_key', '=', sourceKey)
+              .whereIn('target_entity_ref', refs)
+              .union(recursive =>
+                recursive
+                  .select('refresh_state_references.target_entity_ref')
                   .from('descendants')
-                  .join('refresh_state_references', {
-                    'refresh_state_references.target_entity_ref':
-                      'descendants.entity_ref',
-                  })
-                  .union(function recursive(inner) {
-                    return inner
-                      .select({
-                        source_key: 'refresh_state_references.source_key',
-                        source_entity_ref:
-                          'refresh_state_references.source_entity_ref',
-                        target_entity_ref:
-                          'refresh_state_references.target_entity_ref',
-                        subject: 'ancestors.subject',
-                      })
-                      .from('ancestors')
-                      .join('refresh_state_references', {
-                        'refresh_state_references.target_entity_ref':
-                          'ancestors.source_entity_ref',
-                      });
-                  });
-              },
-            )
-            // Start out with all of the descendants
-            .select('descendants.entity_ref')
-            .from('descendants')
-            // Exclude those who seem to have a root relation somewhere upwards that's not part of our own deletion
-            .whereNotExists(function otherAncestors(outer) {
-              outer
-                .from('ancestors')
-                .where(
-                  'ancestors.subject',
-                  '=',
-                  tx.ref('descendants.entity_ref'),
+                  .join(
+                    'refresh_state_references',
+                    'descendants.entity_ref',
+                    'refresh_state_references.source_entity_ref',
+                  ),
+              ),
+          )
+          // All the relations that can be reached upwards from each descendant
+          .withRecursive(
+            'ancestors',
+            ['source_key', 'source_entity_ref', 'target_entity_ref', 'subject'],
+            initial =>
+              initial
+                .select(
+                  'refresh_state_references.source_key',
+                  'refresh_state_references.source_entity_ref',
+                  'refresh_state_references.target_entity_ref',
+                  'descendants.entity_ref',
                 )
-                .whereNotNull('ancestors.source_key')
-                .andWhere(function differentRoot(inner) {
-                  inner
-                    .where('ancestors.source_key', '!=', sourceKey)
-                    .orWhereNotIn('ancestors.target_entity_ref', refs);
-                });
-            })
-        );
-      })
+                .from('descendants')
+                .join('refresh_state_references', {
+                  'refresh_state_references.target_entity_ref':
+                    'descendants.entity_ref',
+                })
+                .union(recursive =>
+                  recursive
+                    .select(
+                      'refresh_state_references.source_key',
+                      'refresh_state_references.source_entity_ref',
+                      'refresh_state_references.target_entity_ref',
+                      'ancestors.subject',
+                    )
+                    .from('ancestors')
+                    .join('refresh_state_references', {
+                      'refresh_state_references.target_entity_ref':
+                        'ancestors.source_entity_ref',
+                    }),
+                ),
+          )
+          // Retain entities who seem to have a root relation somewhere upwards that's not part of our own deletion
+          .with('retained', ['entity_ref'], notPartOfDeletion =>
+            notPartOfDeletion
+              .select('subject')
+              .from('ancestors')
+              .whereNotNull('ancestors.source_key')
+              .where(foreignKeyOrRef =>
+                foreignKeyOrRef
+                  .where('ancestors.source_key', '!=', sourceKey)
+                  .orWhereNotIn('ancestors.target_entity_ref', refs),
+              ),
+          )
+          // Return all descendants minus the retained ones
+          .select('descendants.entity_ref')
+          .from('descendants')
+          .leftOuterJoin(
+            'retained',
+            'retained.entity_ref',
+            'descendants.entity_ref',
+          )
+          .whereNull('retained.entity_ref'),
+      )
       .delete();
 
     // Delete the references that originate only from this entity provider. Note
