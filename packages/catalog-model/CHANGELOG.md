@@ -1,5 +1,19 @@
 # @backstage/catalog-model
 
+## 1.2.0
+
+### Minor Changes
+
+- d51668882d: Adds the tRPC API type to the catalog.
+
+### Patch Changes
+
+- 2518ef5b8a: Add deprecation tag to kubernetes constants in catalog, constants are now defined in plugin-kubernetes-common
+- Updated dependencies
+  - @backstage/config@1.0.6
+  - @backstage/errors@1.1.4
+  - @backstage/types@1.0.2
+
 ## 1.2.0-next.1
 
 ### Minor Changes

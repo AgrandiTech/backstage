@@ -1,5 +1,15 @@
 # @backstage/plugin-analytics-module-ga
 
+## 0.1.26
+
+### Patch Changes
+
+- Updated dependencies
+  - @backstage/core-components@0.12.4
+  - @backstage/theme@0.2.17
+  - @backstage/config@1.0.6
+  - @backstage/core-plugin-api@1.3.0
+
 ## 0.1.26-next.1
 
 ### Patch Changes

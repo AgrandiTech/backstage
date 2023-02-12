@@ -1,5 +1,19 @@
 # @techdocs/cli
 
+## 1.3.2
+
+### Patch Changes
+
+- 339d9a5b5c: Added support for using a default `mkdocs.yml` configuration file when none is provided
+- 6e0b6a0d50: Fixed publish command missing awsBucketRootPath option.
+  Fixed publish command having the gcsBucketRootPath option misconfigured, previously returning a boolean vs a string.
+- Updated dependencies
+  - @backstage/backend-common@0.18.2
+  - @backstage/plugin-techdocs-node@1.4.6
+  - @backstage/catalog-model@1.2.0
+  - @backstage/cli-common@0.1.11
+  - @backstage/config@1.0.6
+
 ## 1.3.2-next.2
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # @backstage/plugin-catalog-graph
 
+## 0.2.27
+
+### Patch Changes
+
+- fe19058b74: Fix #16245: The CatalogGraphCard has parameter naming errors for CatalogGraphPage
+- 1827710136: Expose additional props on the `CatalogGraphCard` to allow for custom node & label rendering or kind/relation filtering.
+- Updated dependencies
+  - @backstage/core-components@0.12.4
+  - @backstage/catalog-model@1.2.0
+  - @backstage/theme@0.2.17
+  - @backstage/plugin-catalog-react@1.3.0
+  - @backstage/catalog-client@1.3.1
+  - @backstage/core-plugin-api@1.3.0
+
 ## 0.2.27-next.2
 
 ### Patch Changes

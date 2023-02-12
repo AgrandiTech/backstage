@@ -1,5 +1,21 @@
 # @backstage/core-components
 
+## 0.12.4
+
+### Patch Changes
+
+- 68ce7d0417: Added aria labels on the support button and sidebar
+- 910015f5b7: The Button component has been deprecated in favor of the LinkButton component
+- 20840b36b4: Adds new type, TableOptions, extending Material Table Options.
+- 85b04f659a: Internal refactor to not use deprecated `substr`
+- 66e2aab4c4: Navigation items in mobile sidebar now have aria label.
+- Updated dependencies
+  - @backstage/theme@0.2.17
+  - @backstage/config@1.0.6
+  - @backstage/core-plugin-api@1.3.0
+  - @backstage/errors@1.1.4
+  - @backstage/version-bridge@1.0.3
+
 ## 0.12.4-next.1
 
 ### Patch Changes

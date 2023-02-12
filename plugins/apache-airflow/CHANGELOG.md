@@ -1,5 +1,14 @@
 # @backstage/plugin-apache-airflow
 
+## 0.2.8
+
+### Patch Changes
+
+- 85b04f659a: Internal refactor to not use deprecated `substr`
+- Updated dependencies
+  - @backstage/core-components@0.12.4
+  - @backstage/core-plugin-api@1.3.0
+
 ## 0.2.8-next.1
 
 ### Patch Changes
